@@ -7,6 +7,8 @@ This is a plugin for Presto that allow you to use Oracle Jdbc Connection
 Create new properties file inside etc/catalog dir:
 
     connector.name=oracle
+    # connection-url must me the URL to access Oracle via JDBC. It can be different depending on your environment.
+    # Another example of the URL would be jdbc:oracle:thin:@//ip:port/database. For more information, please go to the JDBC driver docs
     connection-url=jdbc:oracle:thin://ip:port/database
     connection-user=myuser
     connection-password=
