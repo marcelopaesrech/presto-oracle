@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<!-- <parent> <groupId>com.facebook.presto</groupId> <artifactId>presto-root</artifactId> 
 		<version>0.107</version> </parent> -->
-	<version>0.107</version>
+	<version>0.107.1</version>
 
 	<groupId>ml.prestoconnectors</groupId>
 	<artifactId>presto-oracle</artifactId>
