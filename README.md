@@ -2,6 +2,8 @@
 
 This is a plugin for Presto that allow you to use Oracle Jdbc Connection
 
+[![Presto-Connectors Member](https://img.shields.io/badge/presto--connectors-member-green.svg)](http://presto-connectors.ml)
+
 ## Connection Configuration
 
 Create new properties file inside etc/catalog dir:
