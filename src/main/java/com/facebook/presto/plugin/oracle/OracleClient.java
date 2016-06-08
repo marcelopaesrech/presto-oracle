@@ -144,7 +144,7 @@ public class OracleClient extends BaseJdbcClient {
 				while (resultSet.next()) {
 					found = true;
 					Type columnType = toPrestoType(resultSet
-							.getInt("DATA_TYPE"));
+                            .getInt("DATA_TYPE"), resultSet.getInt("COLUMN_SIZE"));
 					// skip unsupported column types
 					if (columnType != null) {
 						String columnName = resultSet.getString("COLUMN_NAME");
