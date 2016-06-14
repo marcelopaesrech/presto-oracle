@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<!-- <parent> <groupId>com.facebook.presto</groupId> <artifactId>presto-root</artifactId> 
 		<version>0.107</version> </parent> -->
-	<version>0.107.1</version>
+	<version>0.147</version>
 
 	<groupId>ml.prestoconnectors</groupId>
 	<artifactId>presto-oracle</artifactId>
@@ -16,6 +16,7 @@
 			<id>marcelopaesrech</id>
 			<url>https://github.com/marcelopaesrech</url>
 		</developer>
+        <developer>
 			<id>jmrozanec</id>
 			<url>https://github.com/marcelopaesrech</url>
 		</developer>
@@ -32,6 +33,12 @@
 		<developerConnection>scm:git:git@github.com:marcelopaesrech/presto-oracle.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
+
+        <properties>
+                <dep.presto.version>0.147</dep.presto.version>
+                <dep.airlift.version>0.128</dep.airlift.version>
+                <dep.slice.version>0.21</dep.slice.version>
+        </properties>
 
 	<distributionManagement>
 		<repository>
@@ -55,19 +62,19 @@
 		<dependency>
 			<groupId>com.facebook.presto</groupId>
 			<artifactId>presto-base-jdbc</artifactId>
-			<version>0.107</version>
+			<version>${dep.presto.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>io.airlift</groupId>
 			<artifactId>units</artifactId>
-			<version>0.110</version>
+			<version>${dep.airlift.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>io.airlift</groupId>
 			<artifactId>configuration</artifactId>
-			<version>0.110</version>
+			<version>${dep.airlift.version}</version>
 		</dependency>
 
 		<dependency>
@@ -76,13 +83,11 @@
 			<version>18.0</version>
 		</dependency>
 
-
 		<dependency>
 			<groupId>com.google.inject</groupId>
 			<artifactId>guice</artifactId>
 			<version>4.0-beta5</version>
 		</dependency>
-
 
 		<dependency>
 			<groupId>javax.validation</groupId>
@@ -90,6 +95,11 @@
 			<version>1.1.0.Final</version>
 		</dependency>
 
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
 
 		<dependency>
 			<groupId>ojdbc6</groupId>
@@ -101,14 +111,14 @@
 		<dependency>
 			<groupId>com.facebook.presto</groupId>
 			<artifactId>presto-spi</artifactId>
-			<version>0.107</version>
+			<version>${dep.presto.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>io.airlift</groupId>
 			<artifactId>slice</artifactId>
-			<version>0.14</version>
+			<version>${dep.slice.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -151,8 +161,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 			<plugin>
