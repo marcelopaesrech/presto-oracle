@@ -13,7 +13,7 @@
  */
 package io.prestosql.plugin.oracle;
 
-import com.facebook.presto.plugin.jdbc.JdbcPlugin;
+import io.prestosql.plugin.jdbc.JdbcPlugin;
 
 public class OraclePlugin
         extends JdbcPlugin

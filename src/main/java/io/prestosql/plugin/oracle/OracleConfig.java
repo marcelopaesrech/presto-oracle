@@ -13,54 +13,6 @@
  */
 package io.prestosql.plugin.oracle;
 
-import io.airlift.configuration.Config;
-
-/**
- * To get the custom properties to connect to the database. User, password and
- * URL is provided by de BaseJdbcClient is not required. If there is another
- * custom configuration it should be put in here.
- */
 public class OracleConfig
 {
-    private String user;
-
-    private String password;
-
-    private String url;
-
-    public String getUser()
-    {
-        return user;
-    }
-
-    @Config("oracle.user")
-    public OracleConfig setUser(String user)
-    {
-        this.user = user;
-        return this;
-    }
-
-    public String getPassword()
-    {
-        return password;
-    }
-
-    @Config("oracle.password")
-    public OracleConfig setPassword(String password)
-    {
-        this.password = password;
-        return this;
-    }
-
-    public String getUrl()
-    {
-        return url;
-    }
-
-    @Config("oracle.password")
-    public OracleConfig setUrl(String url)
-    {
-        this.url = url;
-        return this;
-    }
 }
