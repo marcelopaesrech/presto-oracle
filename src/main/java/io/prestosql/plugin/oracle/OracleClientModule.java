@@ -23,17 +23,16 @@ import static io.airlift.configuration.ConfigBinder.configBinder;
 
 /**
  * Guice implementation to create the correct DI and binds
- * 
- * @author Marcelo Paes Rech
- *
  */
-public class OracleClientModule implements Module {
-
-	@Override
-	public void configure(Binder binder) {
-		binder.bind(JdbcClient.class).to(OracleClient.class)
-				.in(Scopes.SINGLETON);
-		configBinder(binder).bindConfig(BaseJdbcConfig.class);
-		configBinder(binder).bindConfig(OracleConfig.class);
-	}
+public class OracleClientModule
+        implements Module
+{
+    @Override
+    public void configure(Binder binder)
+    {
+        binder.bind(JdbcClient.class).to(OracleClient.class)
+                .in(Scopes.SINGLETON);
+        configBinder(binder).bindConfig(BaseJdbcConfig.class);
+        configBinder(binder).bindConfig(OracleConfig.class);
+    }
 }
