@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.BiFunction;
 
 import static io.prestosql.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
@@ -116,7 +117,8 @@ public class OracleClient
     @Override
     protected String generateTemporaryTableName()
     {
-        return super.generateTemporaryTableName();
+        UUID uuid = UUID.randomUUID();
+        return "tmp_" + Long.toUnsignedString(uuid.getMostSignificantBits(), 32) + Long.toUnsignedString(uuid.getLeastSignificantBits(), 32);
     }
 
     @Override
