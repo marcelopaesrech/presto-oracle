@@ -23,9 +23,11 @@ import io.prestosql.plugin.jdbc.JdbcColumnHandle;
 import io.prestosql.plugin.jdbc.JdbcIdentity;
 import io.prestosql.plugin.jdbc.JdbcTableHandle;
 import io.prestosql.plugin.jdbc.JdbcTypeHandle;
+import io.prestosql.plugin.jdbc.WriteMapping;
 import io.prestosql.spi.PrestoException;
 import io.prestosql.spi.connector.ConnectorSession;
 import io.prestosql.spi.connector.TableNotFoundException;
+import io.prestosql.spi.type.Type;
 import oracle.jdbc.OracleDriver;
 import oracle.jdbc.driver.OracleConnection;
 
@@ -39,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 import static io.prestosql.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static java.sql.DatabaseMetaData.columnNoNulls;
@@ -105,6 +108,18 @@ public class OracleClient
     }
 
     @Override
+    public Optional<ColumnMapping> toPrestoType(ConnectorSession session, Connection connection, JdbcTypeHandle type)
+    {
+        return super.toPrestoType(session, connection, type);
+    }
+
+    @Override
+    protected String generateTemporaryTableName()
+    {
+        return super.generateTemporaryTableName();
+    }
+
+    @Override
     protected ResultSet getTables(Connection connection, Optional<String> schemaName, Optional<String> tableName)
             throws SQLException
     {
@@ -115,5 +130,23 @@ public class OracleClient
                 escapeNamePattern(schemaName, escape).orElse(null),
                 escapeNamePattern(tableName, escape).orElse(null),
                 new String[] {"TABLE", "VIEW", "SYNONYM"});
+    }
+
+    @Override
+    public WriteMapping toWriteMapping(ConnectorSession session, Type type)
+    {
+        return super.toWriteMapping(session, type);
+    }
+
+    @Override
+    protected Optional<BiFunction<String, Long, String>> limitFunction()
+    {
+        return super.limitFunction();
+    }
+
+    @Override
+    public boolean isLimitGuaranteed()
+    {
+        return super.isLimitGuaranteed();
     }
 }
