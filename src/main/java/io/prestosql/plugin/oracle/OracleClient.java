@@ -27,7 +27,18 @@ import io.prestosql.plugin.jdbc.WriteMapping;
 import io.prestosql.spi.PrestoException;
 import io.prestosql.spi.connector.ConnectorSession;
 import io.prestosql.spi.connector.TableNotFoundException;
+import io.prestosql.spi.type.BigintType;
+import io.prestosql.spi.type.BooleanType;
+import io.prestosql.spi.type.CharType;
+import io.prestosql.spi.type.DecimalType;
+import io.prestosql.spi.type.DoubleType;
+import io.prestosql.spi.type.IntegerType;
+import io.prestosql.spi.type.RealType;
+import io.prestosql.spi.type.SmallintType;
+import io.prestosql.spi.type.TinyintType;
 import io.prestosql.spi.type.Type;
+import io.prestosql.spi.type.VarbinaryType;
+import io.prestosql.spi.type.VarcharType;
 import oracle.jdbc.OracleDriver;
 import oracle.jdbc.driver.OracleConnection;
 
@@ -37,6 +48,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,13 +57,32 @@ import java.util.UUID;
 import java.util.function.BiFunction;
 
 import static io.prestosql.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.booleanWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.charWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.integerWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.longDecimalWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.realColumnMapping;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.realWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.shortDecimalWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
+import static io.prestosql.spi.type.VarcharType.createUnboundedVarcharType;
+import static io.prestosql.spi.type.Varchars.isVarcharType;
+import static java.lang.String.format;
 import static java.sql.DatabaseMetaData.columnNoNulls;
 
 public class OracleClient
         extends BaseJdbcClient
 {
     @Inject
-    public OracleClient(BaseJdbcConfig config, OracleConfig oracleConfig)
+    public OracleClient(BaseJdbcConfig config)
     {
         super(config, "\"", new DriverConnectionFactory(new OracleDriver(), config));
     }
@@ -109,9 +140,27 @@ public class OracleClient
     }
 
     @Override
-    public Optional<ColumnMapping> toPrestoType(ConnectorSession session, Connection connection, JdbcTypeHandle type)
+    public Optional<ColumnMapping> toPrestoType(ConnectorSession session, Connection connection, JdbcTypeHandle typeHandle)
     {
-        return super.toPrestoType(session, connection, type);
+        String jdbcTypeName = typeHandle.getJdbcTypeName()
+                .orElseThrow(() -> new PrestoException(JDBC_ERROR, "Type name is missing: " + typeHandle));
+
+        if (jdbcTypeName.equalsIgnoreCase("BINARY_FLOAT")) {
+            return Optional.of(realColumnMapping());
+        }
+        if (jdbcTypeName.equalsIgnoreCase("BINARY_DOUBLE")) {
+            return Optional.of(doubleColumnMapping());
+        }
+        switch (typeHandle.getJdbcType()) {
+            case Types.CLOB:
+            case Types.NCLOB:
+                return Optional.of(varcharColumnMapping(createUnboundedVarcharType()));
+
+            case Types.BLOB:
+                return Optional.of(varbinaryColumnMapping());
+        }
+
+        return super.toPrestoType(session, connection, typeHandle);
     }
 
     @Override
@@ -137,18 +186,75 @@ public class OracleClient
     @Override
     public WriteMapping toWriteMapping(ConnectorSession session, Type type)
     {
+        if (isVarcharType(type)) {
+            VarcharType varcharType = (VarcharType) type;
+            String dataType;
+            if (varcharType.isUnbounded() || varcharType.getBoundedLength() > 4000) {
+                dataType = "NCLOB";
+            }
+            else {
+                dataType = "NVARCHAR2(" + varcharType.getBoundedLength() + ")";
+            }
+            return WriteMapping.sliceMapping(dataType, varcharWriteFunction());
+        }
+        if (type instanceof CharType) {
+            CharType charType = (CharType) type;
+            String dataType;
+            if (charType.getLength() > 4000) {
+                dataType = "NCLOB";
+            }
+            else {
+                dataType = "NCHAR(" + charType.getLength() + ")";
+            }
+            return WriteMapping.sliceMapping(dataType, charWriteFunction());
+        }
+        if (type instanceof DecimalType) {
+            DecimalType decimalType = (DecimalType) type;
+            String dataType = format("NUMBER(%s, %s)", decimalType.getPrecision(), decimalType.getScale());
+            if (decimalType.isShort()) {
+                return WriteMapping.longMapping(dataType, shortDecimalWriteFunction(decimalType));
+            }
+            return WriteMapping.sliceMapping(dataType, longDecimalWriteFunction(decimalType));
+        }
+        if (type instanceof BooleanType) {
+            return WriteMapping.booleanMapping("NUMBER(1)", booleanWriteFunction());
+        }
+        if (type instanceof BigintType) {
+            return WriteMapping.longMapping("NUMBER(19)", bigintWriteFunction());
+        }
+        if (type instanceof IntegerType) {
+            return WriteMapping.longMapping("NUMBER(10)", integerWriteFunction());
+        }
+        if (type instanceof SmallintType) {
+            return WriteMapping.longMapping("NUMBER(5)", smallintWriteFunction());
+        }
+        if (type instanceof TinyintType) {
+            return WriteMapping.longMapping("NUMBER(3)", tinyintWriteFunction());
+        }
+        if (type instanceof DoubleType) {
+            return WriteMapping.doubleMapping("BINARY_DOUBLE", doubleWriteFunction());
+        }
+        if (type instanceof RealType) {
+            return WriteMapping.longMapping("BINARY_FLOAT", realWriteFunction());
+        }
+        if (type instanceof VarbinaryType) {
+            return WriteMapping.sliceMapping("BLOB", varbinaryWriteFunction());
+        }
+
         return super.toWriteMapping(session, type);
     }
 
     @Override
     protected Optional<BiFunction<String, Long, String>> limitFunction()
     {
-        return super.limitFunction();
+        return Optional.of((sql, limit) -> {
+            return "SELECT * FROM ( " + sql + " ) WHERE rownum <= " + limit;
+        });
     }
 
     @Override
     public boolean isLimitGuaranteed()
     {
-        return super.isLimitGuaranteed();
+        return true;
     }
 }
