@@ -26,6 +26,7 @@ import io.prestosql.plugin.jdbc.JdbcTypeHandle;
 import io.prestosql.plugin.jdbc.WriteMapping;
 import io.prestosql.spi.PrestoException;
 import io.prestosql.spi.connector.ConnectorSession;
+import io.prestosql.spi.connector.SchemaTableName;
 import io.prestosql.spi.connector.TableNotFoundException;
 import io.prestosql.spi.type.BigintType;
 import io.prestosql.spi.type.BooleanType;
@@ -73,10 +74,12 @@ import static io.prestosql.plugin.jdbc.StandardColumnMappings.varbinaryColumnMap
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
+import static io.prestosql.spi.StandardErrorCode.NOT_SUPPORTED;
 import static io.prestosql.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.prestosql.spi.type.Varchars.isVarcharType;
 import static java.lang.String.format;
 import static java.sql.DatabaseMetaData.columnNoNulls;
+import static java.util.Locale.ENGLISH;
 
 public class OracleClient
         extends BaseJdbcClient
@@ -168,6 +171,29 @@ public class OracleClient
     {
         UUID uuid = UUID.randomUUID();
         return "tmp_" + Long.toUnsignedString(uuid.getMostSignificantBits(), 32) + Long.toUnsignedString(uuid.getLeastSignificantBits(), 32);
+    }
+
+    @Override
+    protected void renameTable(JdbcIdentity identity, String catalogName, String schemaName, String tableName, SchemaTableName newTable)
+    {
+        if (!schemaName.equalsIgnoreCase(newTable.getSchemaName())) {
+            throw new PrestoException(NOT_SUPPORTED, "Table rename across schemas is not supported in Oracle");
+        }
+
+        try (Connection connection = connectionFactory.openConnection(identity)) {
+            String newTableName = newTable.getTableName();
+            if (connection.getMetaData().storesUpperCaseIdentifiers()) {
+                newTableName = newTableName.toUpperCase(ENGLISH);
+            }
+            String sql = format(
+                    "ALTER TABLE %s RENAME TO %s",
+                    quoted(catalogName, schemaName, tableName),
+                    quoted(newTableName));
+            execute(connection, sql);
+        }
+        catch (SQLException e) {
+            throw new PrestoException(JDBC_ERROR, e);
+        }
     }
 
     @Override
