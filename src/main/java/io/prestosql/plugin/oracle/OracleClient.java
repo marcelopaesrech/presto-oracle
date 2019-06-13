@@ -36,6 +36,7 @@ import io.prestosql.spi.type.DoubleType;
 import io.prestosql.spi.type.IntegerType;
 import io.prestosql.spi.type.RealType;
 import io.prestosql.spi.type.SmallintType;
+import io.prestosql.spi.type.TimestampType;
 import io.prestosql.spi.type.TinyintType;
 import io.prestosql.spi.type.Type;
 import io.prestosql.spi.type.VarbinaryType;
@@ -69,6 +70,7 @@ import static io.prestosql.plugin.jdbc.StandardColumnMappings.realColumnMapping;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.realWriteFunction;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.shortDecimalWriteFunction;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
+import static io.prestosql.plugin.jdbc.StandardColumnMappings.timestampWriteFunctionUsingSqlTimestamp;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
 import static io.prestosql.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
@@ -265,6 +267,9 @@ public class OracleClient
         }
         if (type instanceof VarbinaryType) {
             return WriteMapping.sliceMapping("BLOB", varbinaryWriteFunction());
+        }
+        if (type instanceof TimestampType) {
+            return WriteMapping.longMapping("TIMESTAMP", timestampWriteFunctionUsingSqlTimestamp(session));
         }
 
         return super.toWriteMapping(session, type);
