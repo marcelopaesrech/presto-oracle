@@ -87,7 +87,7 @@ public class OracleClient
         extends BaseJdbcClient
 {
     @Inject
-    public OracleClient(BaseJdbcConfig config)
+    public OracleClient(BaseJdbcConfig config, OracleConfig oracleConfig)
     {
         super(config, "\"", new DriverConnectionFactory(new OracleDriver(), config));
     }
