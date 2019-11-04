@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<!-- <parent> <groupId>com.facebook.presto</groupId> <artifactId>presto-root</artifactId> 
 		<version>0.107</version> </parent> -->
-	<version>0.147</version>
+	<version>0.228</version>
 
 	<groupId>ml.prestoconnectors</groupId>
 	<artifactId>presto-oracle</artifactId>
@@ -35,7 +35,7 @@
 	</scm>
 
         <properties>
-                <dep.presto.version>0.147</dep.presto.version>
+                <dep.presto.version>0.228</dep.presto.version>
                 <dep.airlift.version>0.128</dep.airlift.version>
                 <dep.slice.version>0.21</dep.slice.version>
         </properties>
@@ -63,6 +63,12 @@
 			<groupId>com.facebook.presto</groupId>
 			<artifactId>presto-base-jdbc</artifactId>
 			<version>${dep.presto.version}</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.google.code.findbugs/jsr305 -->
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+			<version>3.0.2</version>
 		</dependency>
 
 		<dependency>
@@ -100,11 +106,10 @@
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
         </dependency>
-
 		<dependency>
-			<groupId>ojdbc6</groupId>
-			<artifactId>ojdbc6</artifactId>
-			<version>11.2.0.3</version>
+			<groupId>com.oracle</groupId>
+			<artifactId>ojdbc8</artifactId>
+			<version>12.2.0.1</version>
 		</dependency>
 
 		<!-- Presto SPI -->
@@ -136,14 +141,6 @@
 			<version>2.6.0-rc2</version>
 			<scope>provided</scope>
 		</dependency>
-
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-annotations</artifactId>
-			<version>2.6.0-rc2</version>
-			<scope>provided</scope>
-		</dependency>
-
 
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
