@@ -13,29 +13,15 @@
  */
 package com.facebook.presto.plugin.oracle;
 
-import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
-import static com.google.common.collect.Iterables.getOnlyElement;
-
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-
-import oracle.jdbc.OracleDriver;
-
-import org.apache.log4j.Logger;
-
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
+import com.facebook.presto.plugin.jdbc.DriverConnectionFactory;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
+import com.facebook.presto.plugin.jdbc.JdbcTypeHandle;
+import com.facebook.presto.plugin.jdbc.ReadMapping;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.TableNotFoundException;
@@ -43,7 +29,22 @@ import com.facebook.presto.spi.type.Type;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import oracle.jdbc.OracleDriver;
+import org.apache.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
+import javax.inject.Inject;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
+import static com.google.common.collect.Iterables.getOnlyElement;
 /**
  * Implementation of OracleClient. It describes table, schemas and columns behaviours.
  * It allows to change the QueryBuilder to a custom one as well.
@@ -58,7 +59,7 @@ public class OracleClient extends BaseJdbcClient {
 	@Inject
 	public OracleClient(JdbcConnectorId connectorId, BaseJdbcConfig config,
 			OracleConfig oracleConfig) throws SQLException {
-		super(connectorId, config, "", new OracleDriver());
+		super(connectorId, config, "", new DriverConnectionFactory(new OracleDriver(), config));
 		//the empty "" is to not use a quote to create queries
 		// BaseJdbcClient already gets these properties
 		// connectionProperties.setProperty("user", oracleConfig.getUser());
@@ -70,8 +71,7 @@ public class OracleClient extends BaseJdbcClient {
 
 	@Override
 	public Set<String> getSchemaNames() {
-		try (Connection connection = driver.connect(connectionUrl,
-				connectionProperties);
+		try (Connection connection =  this.connectionFactory.openConnection();
 				ResultSet resultSet = connection.getMetaData().getSchemas()) {
 			ImmutableSet.Builder<String> schemaNames = ImmutableSet.builder();
 			while (resultSet.next()) {
@@ -95,8 +95,7 @@ public class OracleClient extends BaseJdbcClient {
 	@Nullable
 	@Override
 	public JdbcTableHandle getTableHandle(SchemaTableName schemaTableName) {
-		try (Connection connection = driver.connect(connectionUrl,
-				connectionProperties)) {
+		try (Connection connection =  this.connectionFactory.openConnection()) {
 			DatabaseMetaData metadata = connection.getMetaData();
 			String jdbcSchemaName = schemaTableName.getSchemaName();
 			String jdbcTableName = schemaTableName.getTableName();
@@ -128,9 +127,8 @@ public class OracleClient extends BaseJdbcClient {
 	}
 
 	@Override
-	public List<JdbcColumnHandle> getColumns(JdbcTableHandle tableHandle) {
-		try (Connection connection = driver.connect(connectionUrl,
-				connectionProperties)) {
+	public List<JdbcColumnHandle> getColumns(ConnectorSession session, JdbcTableHandle tableHandle) {
+		try (Connection connection =  this.connectionFactory.openConnection()) {
 			//If the table is mapped to another user you will need to get the synonym to that table
 			//So, in this case, is mandatory to use setIncludeSynonyms
 			( (oracle.jdbc.driver.OracleConnection)connection ).setIncludeSynonyms(true);
@@ -141,15 +139,16 @@ public class OracleClient extends BaseJdbcClient {
 					tableName, null)) {
 				List<JdbcColumnHandle> columns = new ArrayList<>();
 				boolean found = false;
+				Object typeHandle;
 				while (resultSet.next()) {
 					found = true;
-					Type columnType = toPrestoType(resultSet
-                            .getInt("DATA_TYPE"), resultSet.getInt("COLUMN_SIZE"));
+					typeHandle = new JdbcTypeHandle(resultSet
+                            .getInt("DATA_TYPE"), resultSet.getInt("COLUMN_SIZE"), resultSet.getInt("DECIMAL_DIGITS"));
+					Optional<ReadMapping> columnMapping = this.toPrestoType(session, (JdbcTypeHandle)typeHandle);
 					// skip unsupported column types
-					if (columnType != null) {
+					if (columnMapping.isPresent()) {
 						String columnName = resultSet.getString("COLUMN_NAME");
-						columns.add(new JdbcColumnHandle(connectorId,
-								columnName, columnType));
+						columns.add(new JdbcColumnHandle(this.connectorId, columnName, (JdbcTypeHandle)typeHandle, ((ReadMapping)columnMapping.get()).getType()));
 					}
 				}
 				if (!found) {
@@ -170,8 +169,7 @@ public class OracleClient extends BaseJdbcClient {
 
 	@Override
 	public List<SchemaTableName> getTableNames(@Nullable String schema) {
-		try (Connection connection = driver.connect(connectionUrl,
-				connectionProperties)) {
+		try (Connection connection = this.connectionFactory.openConnection()) {
 			DatabaseMetaData metadata = connection.getMetaData();
 			if (metadata.storesUpperCaseIdentifiers() && (schema != null)) {
 				schema = schema.toUpperCase();
