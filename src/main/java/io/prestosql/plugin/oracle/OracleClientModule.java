@@ -11,29 +11,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.plugin.oracle;
+package io.prestosql.plugin.oracle;
 
-import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
-import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
+import io.prestosql.plugin.jdbc.BaseJdbcConfig;
+import io.prestosql.plugin.jdbc.JdbcClient;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
-/**
- * Guice implementation to create the correct DI and binds
- * 
- * @author Marcelo Paes Rech
- *
- */
-public class OracleClientModule implements Module {
-
-	@Override
-	public void configure(Binder binder) {
-		binder.bind(JdbcClient.class).to(OracleClient.class)
-				.in(Scopes.SINGLETON);
-		configBinder(binder).bindConfig(BaseJdbcConfig.class);
-		configBinder(binder).bindConfig(OracleConfig.class);
-	}
+public class OracleClientModule
+        implements Module
+{
+    @Override
+    public void configure(Binder binder)
+    {
+        binder.bind(JdbcClient.class).to(OracleClient.class).in(Scopes.SINGLETON);
+        configBinder(binder).bindConfig(BaseJdbcConfig.class);
+        configBinder(binder).bindConfig(OracleConfig.class);
+    }
 }
